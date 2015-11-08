@@ -19,13 +19,14 @@
 
 (defvar alloy-font-lock-keywords
   (let ((kw1 (mapconcat 'identity
-            '("sig" "fun" "det" "let" "extends"
-              "static" "disj" "option" "set" "all"
-              "some" "sole" "open"
-              "uses" "run" "check" "eval" "for" "but" "none"
-              "univ" "iden" "in" "no"
+            '("sig" "fun" "det" "let" "extends" "abstract"
+              "static" "disj" "option" "set" "seq" "all"
+              "one" "some" "sole" "open"
+              "uses" "run" "check" "eval" "for" "but" "none" "exactly"
+              "univ" "iden" "in" "no" "not"
               "with" "sum" "if" "then" "else"
-              "pred"
+              "pred" "iff" "implies"
+              "and" "or" ;; "=>" "=" "+" "-"
               )
             "\\|"))
     (kw2 (mapconcat 'identity
@@ -98,7 +99,8 @@
   ;; comment delimiters
   (modify-syntax-entry ?/  ". 124b" alloy-mode-syntax-table)
   (modify-syntax-entry ?*  ". 23"   alloy-mode-syntax-table)
-  (modify-syntax-entry ?\n "> b    "  alloy-mode-syntax-table)
+  (modify-syntax-entry ?-  ". 12b" alloy-mode-syntax-table)
+  (modify-syntax-entry ?\n "> b   "  alloy-mode-syntax-table)
   (modify-syntax-entry ?  "    " alloy-mode-syntax-table)
   (modify-syntax-entry ?\t "    " alloy-mode-syntax-table)
   (modify-syntax-entry ?\r "    " alloy-mode-syntax-table)
@@ -135,6 +137,15 @@
       )
     )
   )
+
+
+(defgroup alloy nil
+  "Alloy-mode customizations."
+  :group 'languages)
+
+(defcustom alloy-basic-offset 3
+  "Basic indentation offset."
+  :type 'integer :group 'alloy)
 
 
 (defun alloy-indent-line (&optional whole-exp)
@@ -186,7 +197,7 @@ rigidly along with this one."
         (if (= obrace 1)
         (if (= cbrace 1)
             (setq indentcol last-indent)
-          (setq indentcol (+ last-indent 3)))
+          (setq indentcol (+ last-indent alloy-basic-offset)))
           ;; if there isn't an opening brace at the end of the last row,
           ;; use the nearest enclosing sexp to determine indentation
           ;; if the enclosing sexp starts with ( or [
@@ -205,7 +216,7 @@ rigidly along with this one."
               (backward-char)
               (if (= cbrace 1)
                   (setq indentcol (current-column))
-                (setq indentcol (+ 3 (current-column)))))))
+                (setq indentcol (+ alloy-basic-offset (current-column)))))))
           (error (setq indentcol last-indent)))
         )))
 
@@ -222,9 +233,15 @@ rigidly along with this one."
     )
   )
 
-(defun alloy-mode ()
-  (interactive)
-  (kill-all-local-variables)
+(defvar alloy-mode-hook nil
+  "*List of functions to call when Alloy mode is invoked.
+This hook is automatically executed after the `alloy-mode' is
+fully loaded.
+This is a good place to add Alloy environment specific bindings.")
+
+;;;###autoload
+(define-derived-mode alloy-mode prog-mode "Alloy"
+  :group 'alloy
   (make-local-variable 'font-lock-defaults)
   (make-local-variable 'comment-start)
   (make-local-variable 'comment-end)
@@ -232,11 +249,7 @@ rigidly along with this one."
   (make-local-variable 'comment-column)
   (make-local-variable 'comment-indent-function)
   (make-local-variable 'indent-line-function)
-
-  (set-syntax-table alloy-mode-syntax-table)
-
-  (setq major-mode          'alloy-mode
-    mode-name               "Alloy"
+  (setq
     font-lock-defaults      '(alloy-font-lock-keywords)
     comment-start           "/* "
     comment-end             " */"
@@ -244,9 +257,9 @@ rigidly along with this one."
     comment-column          40
     comment-indent-function 'java-comment-indent
     indent-line-function    'alloy-indent-line
-    indent-tabs-mode        t
-    )
-  (use-local-map alloy-mode-map)
-)
+    indent-tabs-mode        t)
+  (use-local-map alloy-mode-map))
+
+(add-to-list 'auto-mode-alist '("\\.als\\'" . alloy-mode))
 
 (provide 'alloy-mode)
